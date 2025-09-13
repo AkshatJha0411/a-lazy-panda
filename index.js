@@ -2,16 +2,16 @@ import express from 'express';
 import { supabase } from './db.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
-// Simple request logger middleware to see every incoming request
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] Received ${req.method} request for ${req.originalUrl}`);
-  next();
-});
+// // Simple request logger middleware to see every incoming request
+// app.use((req, res, next) => {
+//   console.log(`[${new Date().toISOString()}] Received ${req.method} request for ${req.originalUrl}`);
+//   next();
+// });
 
 // Simple request logger middleware to see every incoming request
 app.use((req, res, next) => {
