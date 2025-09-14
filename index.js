@@ -7,17 +7,12 @@ const PORT = 3000;
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
-// // Simple request logger middleware to see every incoming request
-// app.use((req, res, next) => {
-//   console.log(`[${new Date().toISOString()}] Received ${req.method} request for ${req.originalUrl}`);
-//   next();
-// });
-
 // Simple request logger middleware to see every incoming request
 app.use((req, res, next) => {
     console.log(`[${new Date().toISOString()}] Received ${req.method} request for ${req.originalUrl}`);
     next();
-  });
+});
+
 // --- HELPER FUNCTIONS & MIDDLEWARE ---
 
 /**
@@ -200,50 +195,40 @@ app.get('/api/bookings/:user', async (req, res) => {
 });
 
 /**
- * DELETE /api/bookings/:id
- * Cancels a specific booking.
+ * POST /api/bookings/cancel
+ * Cancels a specific booking by setting its tickets to 0.
+ * The request body must contain the user and booking_id.
  */
-app.delete('/api/bookings/:id', async (req, res) => {
+app.post('/api/bookings/cancel', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { user } = req.body;
+    const { booking_id, user } = req.body;
 
-    if (!user) {
-      return res.status(400).json({ message: 'Bad Request: Missing user in request body.' });
+    if (!booking_id || !user) {
+      return res.status(400).json({ message: 'Bad Request: Missing booking_id or user in request body.' });
     }
 
     const userId = await getUserId(user);
 
-    // First, verify the user owns the booking they are trying to delete.
-    const { data: booking, error: fetchError } = await supabase
-      .from('bookings')
-      .select('user_id')
-      .eq('id', id)
-      .single();
+    // Call the new atomic function to cancel the booking and update tickets to 0.
+    const { data, error } = await supabase.rpc('cancel_booking_by_post', {
+      p_booking_id: booking_id,
+      p_user_id: userId
+    });
 
-    if (fetchError || !booking) {
-      return res.status(404).json({ message: 'Booking not found.' });
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ message: 'Booking not found or not owned by user.' });
+      }
+      return res.status(400).json({ message: 'Booking cancellation failed.', error: error.message });
     }
-
-    if (booking.user_id !== userId) {
-      return res.status(403).json({ message: 'Forbidden: You do not have permission to cancel this booking.' });
-    }
-
-    // If authorized, proceed with deletion.
-    // The `decrement_tickets` trigger in Supabase will handle updating the event's `tickets_sold`.
-    const { error: deleteError } = await supabase
-      .from('bookings')
-      .delete()
-      .eq('id', id);
-
-    if (deleteError) throw deleteError;
 
     res.status(200).json({ message: 'Booking cancelled successfully.' });
   } catch (error) {
-    console.error(`Error cancelling booking ${req.params.id}:`, error.message);
+    console.error(`Error cancelling booking:`, error.message);
     res.status(500).json({ message: 'Internal Server Error', error: error.message });
   }
 });
+
 
 // --- ADMIN API ENDPOINTS ---
 
@@ -343,4 +328,3 @@ app.get('/api/admin/analytics', adminAuth, async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
-

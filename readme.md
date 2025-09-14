@@ -21,7 +21,7 @@ To run this project locally, you need the following installed on your machine:
 
     ```bash
     git clone <repository_url>
-    cd EVE-NT-LY
+    cd <repo-name>
     ```
 
 2.  **Install dependencies:**
@@ -129,13 +129,14 @@ These endpoints require a `user` key in the request body to identify the user.
     ]
     ```
 
-##### `DELETE /api/bookings/:id`
+##### `POST /api/bookings/cancel`
 
-  * **Description**: Cancels a specific booking by its ID. Requires the `user` to be included in the body for authorization.
+  * **Description**: Cancels a specific booking. This endpoint is a POST request that deletes the booking record and updates the event's ticket count atomically.
   * **Request Body**:
     ```json
     {
-      "user": "Akshat Jha"
+    "booking_id": "paste_the_booking_id_here",
+    "user": "Akshat Jha"
     }
     ```
   * **Response**: `200 OK` on successful cancellation.
@@ -144,7 +145,7 @@ These endpoints require a `user` key in the request body to identify the user.
       "message": "Booking cancelled successfully."
     }
     ```
-  * **Error Responses**: `403 Forbidden` if the user doesn't own the booking, `404 Not Found` if the booking ID is invalid.
+  * **Error Responses**: `400 Bad Request` if the body is missing, `404 Not Found` if the booking ID is invalid or not owned by the user.
 
 -----
 
